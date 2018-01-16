@@ -1,0 +1,154 @@
+package edu.nsu.library.ui;
+
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+
+import javax.print.attribute.standard.DialogTypeSelection;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+
+import org.omg.CORBA.PUBLIC_MEMBER;
+
+import edu.nsu.library.bean.Book;
+import edu.nsu.library.bean.BorrowInfo;
+import edu.nsu.library.dao.BorrowInfoDAO;
+import edu.nsu.library.service.BookService;
+import edu.nsu.library.util.Models;
+
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import java.awt.Font;
+import javax.swing.JTextField;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.nio.channels.SelectableChannel;
+import java.sql.SQLException;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.Color;
+
+public class RenewDialog extends JDialog {
+
+	private final JPanel contentPanel = new JPanel();
+	private JTable table;
+	private JScrollPane scrollPane;
+	private BookService bookService=null;
+	private Models models=null;
+	private int selectRow = 0;
+	public int borrowId;
+	private int userId;
+	private int renew;
+
+	public int getUserId() {
+		return userId;
+	}
+
+	public void setUserId(int userId) {
+		this.userId = userId;
+	}
+
+	public Models getModels() {
+		if(models==null)
+			models=new Models();
+		return models;
+	}
+
+	public BookService getBookService() {
+		if(bookService==null)
+			bookService=new BookService();
+		return bookService;
+	}
+
+	/**
+	 * Launch the application.
+	 */
+	public void getData(){
+		BorrowInfoDAO borrowInfoDAO = new BorrowInfoDAO();
+		ArrayList<BorrowInfo> borrowInfos= borrowInfoDAO.getByUserId2(getUserId());
+		table.setModel(getModels().getBorrowInfoTableModel(borrowInfos));
+		table.validate();
+		
+	}
+	/**
+	 * Create the dialog.
+	 */
+	public RenewDialog(int id) {
+		userId = id;
+		setTitle("\u501F\u4E66\u4FE1\u606F");
+		setBounds(100, 100, 600, 424);
+		getContentPane().setLayout(new BorderLayout());
+		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		getContentPane().add(contentPanel, BorderLayout.CENTER);
+		contentPanel.setLayout(null);
+		
+		JLabel lblNewLabel = new JLabel("\u5DF2\u501F\u56FE\u4E66\u4FE1\u606F");
+		lblNewLabel.setFont(new Font("宋体", Font.PLAIN, 22));
+		lblNewLabel.setBounds(231, 10, 146, 62);
+		contentPanel.add(lblNewLabel);
+		
+		scrollPane = new JScrollPane();
+	
+		scrollPane.setBounds(24, 91, 539, 212);
+		contentPanel.add(scrollPane);
+		
+		table = new JTable();
+		
+		table.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(e.getClickCount()==2){
+					//获得用户双击的行
+					int i=table.getSelectedRow();
+					//获得第i行第0列的值，即id值
+					int bid=(Integer)table.getValueAt(i, 0);
+					GetBorrowInfo borrowInfo = new GetBorrowInfo(bid);
+					borrowInfo.setVisible(true);
+				}
+				if(e.getClickCount()==1){
+					int j = table.getSelectedRow();
+					borrowId = (Integer)table.getValueAt(j, 0);	
+				}
+			}
+		});
+		scrollPane.setViewportView(table);
+		
+		JButton btnNewButton = new JButton("\u7EED\u501F");
+		btnNewButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					changeRenew(borrowId);
+					JOptionPane.showMessageDialog
+					(null, "续借成功！","错误信息",JOptionPane.INFORMATION_MESSAGE);
+					dispose();
+					RenewDialog renewDialog = new RenewDialog(userId);
+					renewDialog.setVisible(true);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+		});
+		btnNewButton.setFont(new Font("宋体", Font.PLAIN, 18));
+		btnNewButton.setBounds(192, 313, 155, 44);
+		contentPanel.add(btnNewButton);
+		this.setLocationRelativeTo(null);
+		this.setVisible(true);
+		getData();
+	}
+	public void changeRenew(int id) throws SQLException{
+		BorrowInfoDAO borrowInfoDAO = new BorrowInfoDAO();
+		BorrowInfo borrowInfo = new BorrowInfo();
+		borrowInfo.setRenew(borrowInfoDAO.getById(borrowId).getRenew()+1);
+		borrowInfo.setId(id);
+		borrowInfoDAO.changeRenew(borrowInfo);
+	}
+}
